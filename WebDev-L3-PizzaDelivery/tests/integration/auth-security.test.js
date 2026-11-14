@@ -261,7 +261,7 @@ describe('Authentication - Security & Authorization', () => {
 
     it('should rehash password on password change', async () => {
       const oldHash = customerUser.password;
-
+      
       customerUser.password = 'newpassword123';
       await customerUser.save();
 

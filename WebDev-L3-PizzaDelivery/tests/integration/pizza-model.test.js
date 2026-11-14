@@ -39,7 +39,10 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
       { name: 'Mushrooms', category: 'vegetable', pricePaise: 2500, stock: 100 },
       { name: 'Olives', category: 'vegetable', pricePaise: 1800, stock: 100 },
       { name: 'Low Stock Base', category: 'base', pricePaise: 4000, stock: 15, reserved: 10 },
-      { name: 'Inactive Sauce', category: 'sauce', pricePaise: 3000, stock: 100, isActive: false },
+{ name: 'Inactive Sauce', category: 'sauce', pricePaise: 3000, stock: 100, isActive: false },
+
+// Protein ingredient for Non-Vegetarian pizza tests
+{ name: 'Chicken', category: 'protein', pricePaise: 20000, stock: 100 },
     ]);
 
     testIngredients = {
@@ -54,7 +57,10 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
       mushrooms: ingredients[8]._id,
       olives: ingredients[9]._id,
       lowStockBase: ingredients[10]._id,
-      inactiveSauce: ingredients[11]._id,
+inactiveSauce: ingredients[11]._id,
+
+// Protein ingredient
+chicken: ingredients[12]._id,
     };
   });
 
@@ -153,21 +159,110 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
     });
 
     it('should accept all valid category values', async () => {
-      const categories = ['vegetarian', 'non-vegetarian', 'vegan'];
 
-      for (let i = 0; i < categories.length; i++) {
-        const pizza = await Pizza.create({
-          name: `${categories[i]} Pizza ${i}`,
-          category: categories[i],
-          ingredients: {
-            base: testIngredients.thinCrust,
-            sauce: testIngredients.tomatoSauce,
-            cheese: testIngredients.mozzarella,
-          },
-        });
-        expect(pizza.category).toBe(categories[i]);
+  const categories = [
+    'vegetarian',
+    'non-vegetarian',
+    'vegan'
+  ];
+
+  for (let i = 0; i < categories.length; i++) {
+
+    const category = categories[i];
+
+    const pizza = await Pizza.create({
+
+      name: `${category} Pizza ${i}`,
+
+      category,
+
+      ingredients: {
+
+        base: testIngredients.thinCrust,
+
+        sauce: testIngredients.tomatoSauce,
+
+        cheese: testIngredients.mozzarella,
+
+        vegetables: [],
+
+        // Only Non-Vegetarian pizzas contain proteins
+        proteins: category === 'non-vegetarian'
+          ? [testIngredients.chicken]
+          : []
+
       }
+
     });
+
+    expect(pizza.category).toBe(category);
+
+    if (category === 'non-vegetarian') {
+
+      expect(pizza.ingredients.proteins).toHaveLength(1);
+
+      expect(pizza.ingredients.proteins[0]).toEqual(
+        testIngredients.chicken
+      );
+
+    } else {
+
+      expect(pizza.ingredients.proteins).toHaveLength(0);
+
+    }
+
+  }
+
+});
+
+it('should reject non-vegetarian pizzas without proteins', async () => {
+
+  await expect(Pizza.create({
+
+    name: 'Invalid Non-Vegetarian Pizza',
+
+    category: 'non-vegetarian',
+
+    ingredients: {
+      base: testIngredients.thinCrust,
+      sauce: testIngredients.tomatoSauce,
+      cheese: testIngredients.mozzarella,
+      vegetables: [],
+      proteins: []
+    }
+
+  })).rejects.toThrow(
+    /Non-vegetarian pizzas must contain at least one protein/
+  );
+
+});
+
+
+it('should reject proteins in vegetarian and vegan pizzas', async () => {
+
+  for (const category of ['vegetarian', 'vegan']) {
+
+    await expect(Pizza.create({
+
+      name: `Invalid ${category} Pizza`,
+
+      category,
+
+      ingredients: {
+        base: testIngredients.thinCrust,
+        sauce: testIngredients.tomatoSauce,
+        cheese: testIngredients.mozzarella,
+        vegetables: [],
+        proteins: [testIngredients.chicken]
+      }
+
+    })).rejects.toThrow(
+      /Vegetarian and vegan pizzas cannot contain protein toppings/
+    );
+
+  }
+
+});
 
     it('should enforce unique pizza names', async () => {
       await Pizza.create({
@@ -441,11 +536,118 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
     });
   });
 
+describe('Non-Vegetarian Protein Tests', () => {
+
+  it('should include multiple proteins in pizza pricing', async () => {
+
+    const pepperoni = await Ingredient.create({
+      name: 'Pepperoni',
+      category: 'protein',
+      pricePaise: 12000,
+      stock: 100
+    });
+
+    const pizza = await Pizza.create({
+      name: 'Meat Lovers Test',
+
+      category: 'non-vegetarian',
+
+      ingredients: {
+        base: testIngredients.thinCrust,
+        sauce: testIngredients.tomatoSauce,
+        cheese: testIngredients.mozzarella,
+
+        vegetables: [testIngredients.onions],
+
+        proteins: [
+          testIngredients.chicken,
+          pepperoni._id
+        ]
+      }
+    });
+
+    const price = await pizza.calculatePrice();
+
+    // Base: 4000
+    // Sauce: 3000
+    // Cheese: 5000
+    // Onions: 1500
+    // Chicken: 20000
+    // Pepperoni: 12000
+
+    expect(price).toBe(45500);
+  });
+
+
+  it('should reject ingredients incorrectly assigned as proteins', async () => {
+
+    await expect(Pizza.create({
+      name: 'Invalid Protein Category Test',
+
+      category: 'non-vegetarian',
+
+      ingredients: {
+        base: testIngredients.thinCrust,
+        sauce: testIngredients.tomatoSauce,
+        cheese: testIngredients.mozzarella,
+
+        // Onions are vegetables, not proteins
+        proteins: [testIngredients.onions]
+      }
+
+    })).rejects.toThrow(
+      /Protein must be a protein ingredient/
+    );
+
+  });
+
+
+  it('should detect insufficient protein stock', async () => {
+
+    const limitedChicken = await Ingredient.create({
+      name: 'Limited Chicken',
+      category: 'protein',
+      pricePaise: 20000,
+      stock: 3,
+      reserved: 2
+    });
+
+    const pizza = await Pizza.create({
+      name: 'Limited Chicken Pizza',
+
+      category: 'non-vegetarian',
+
+      ingredients: {
+        base: testIngredients.thinCrust,
+        sauce: testIngredients.tomatoSauce,
+        cheese: testIngredients.mozzarella,
+
+        proteins: [limitedChicken._id]
+      }
+    });
+
+    // Only 1 portion of chicken is available.
+    // Requesting 2 pizzas should fail.
+    const result = await pizza.checkAvailability(2);
+
+    expect(result.available).toBe(false);
+
+    expect(
+      result.unavailable.some(
+        ingredient =>
+          ingredient.reason === 'insufficient_stock'
+      )
+    ).toBe(true);
+
+  });
+
+});
+
   describe('Indexes', () => {
     it('should have index on category', async () => {
       await Pizza.init(); // Ensure indexes are created
       const indexes = await Pizza.collection.getIndexes();
-      const categoryIndex = Object.keys(indexes).find(key =>
+      const categoryIndex = Object.keys(indexes).find(key => 
         key.includes('category')
       );
       expect(categoryIndex).toBeDefined();
@@ -454,7 +656,7 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
     it('should have index on isActive', async () => {
       await Pizza.init();
       const indexes = await Pizza.collection.getIndexes();
-      const activeIndex = Object.keys(indexes).find(key =>
+      const activeIndex = Object.keys(indexes).find(key => 
         key.includes('isActive')
       );
       expect(activeIndex).toBeDefined();
@@ -569,7 +771,7 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
 
     it('should reject nonexistent base ingredient on save', async () => {
       const fakeId = new mongoose.Types.ObjectId();
-
+      
       await expect(Pizza.create({
         name: 'Bad Base',
         category: 'vegetarian',
@@ -583,7 +785,7 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
 
     it('should reject nonexistent sauce ingredient on save', async () => {
       const fakeId = new mongoose.Types.ObjectId();
-
+      
       await expect(Pizza.create({
         name: 'Bad Sauce',
         category: 'vegetarian',
@@ -597,7 +799,7 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
 
     it('should reject nonexistent cheese ingredient on save', async () => {
       const fakeId = new mongoose.Types.ObjectId();
-
+      
       await expect(Pizza.create({
         name: 'Bad Cheese',
         category: 'vegetarian',
@@ -611,7 +813,7 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
 
     it('should reject nonexistent vegetable ingredient on save', async () => {
       const fakeId = new mongoose.Types.ObjectId();
-
+      
       await expect(Pizza.create({
         name: 'Bad Veggie',
         category: 'vegetarian',
@@ -722,3 +924,4 @@ describe('Pizza Model - Phase 3 Recipe and Pricing', () => {
     });
   });
 });
+

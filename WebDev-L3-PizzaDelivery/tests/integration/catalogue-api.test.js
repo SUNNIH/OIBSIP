@@ -35,7 +35,7 @@ describe('Catalogue API - Phase 3 Task 3.3', () => {
 
     // Get CSRF session by making a request
     await agent.get('/api/auth/csrf-token');
-
+    
     // Get CSRF token
     const csrfRes = await agent.get('/api/auth/csrf-token');
     csrfToken = csrfRes.body.csrfToken;

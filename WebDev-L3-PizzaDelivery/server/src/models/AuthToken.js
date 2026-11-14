@@ -45,56 +45,56 @@ authTokenSchema.statics.generateToken = function() {
 // Static method to create verification token (24 hour expiry)
 authTokenSchema.statics.createVerificationToken = async function(userId) {
   const { token, tokenHash } = this.generateToken();
-
+  
   await this.create({
     userId,
     tokenHash,
     type: 'verification',
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   });
-
+  
   return token;
 };
 
 // Static method to create password reset token (1 hour expiry)
 authTokenSchema.statics.createPasswordResetToken = async function(userId) {
   const { token, tokenHash } = this.generateToken();
-
+  
   // Invalidate all previous password reset tokens for this user
   await this.updateMany(
     { userId, type: 'passwordReset', used: false },
     { used: true }
   );
-
+  
   await this.create({
     userId,
     tokenHash,
     type: 'passwordReset',
     expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
   });
-
+  
   return token;
 };
 
 // Static method to verify and consume token
 authTokenSchema.statics.verifyAndConsumeToken = async function(token, type) {
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-
+  
   const authToken = await this.findOne({
     tokenHash,
     type,
     used: false,
     expiresAt: { $gt: new Date() },
   });
-
+  
   if (!authToken) {
     return null;
   }
-
+  
   // Mark as used (single-use)
   authToken.used = true;
   await authToken.save();
-
+  
   return authToken.userId;
 };
 

@@ -11,7 +11,7 @@ describe('Environment Validation Tests', () => {
   it('should fail when MONGODB_URI is missing', async () => {
     // Create a test file that imports env config
     const envModule = '../server/src/config/env.js';
-
+    
     // Set incomplete environment
     process.env.NODE_ENV = 'test';
     process.env.PORT = '5000';

@@ -30,7 +30,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
     // Clear database before each test
     await Ingredient.deleteMany({});
     await Pizza.deleteMany({});
-
+    
     // Ensure process.env.MONGODB_URI matches the test connection
     process.env.MONGODB_URI = replSet.getUri();
   });
@@ -87,7 +87,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
 
       const names = await Ingredient.distinct('name');
       const ingredients = await Ingredient.find({});
-
+      
       expect(names.length).toBe(ingredients.length);
     });
   });
@@ -107,14 +107,14 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       await seedDatabase();
 
       const pizzas = await Pizza.find({}).populate('ingredients.base ingredients.sauce ingredients.cheese');
-
+      
       for (const pizza of pizzas) {
         expect(pizza.ingredients.base).toBeDefined();
         expect(pizza.ingredients.base.category).toBe('base');
-
+        
         expect(pizza.ingredients.sauce).toBeDefined();
         expect(pizza.ingredients.sauce.category).toBe('sauce');
-
+        
         expect(pizza.ingredients.cheese).toBeDefined();
         expect(pizza.ingredients.cheese.category).toBe('cheese');
       }
@@ -141,7 +141,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       expect(veggie.ingredients.vegetables).toHaveLength(4);
 
       const price = await veggie.calculatePrice();
-      // Thick Crust (18000) + Classic Tomato (8000) + Mozzarella (15000)
+      // Thick Crust (18000) + Classic Tomato (8000) + Mozzarella (15000) 
       // + Bell Peppers (7000) + Onions (5000) + Mushrooms (8000) + Olives (9000) = 70000 paise = ₹700
       expect(price).toBe(70000);
     });
@@ -306,7 +306,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
         const calculatedPrice = await pizza.calculatePrice();
         expect(calculatedPrice).toBeGreaterThan(0);
         expect(Number.isInteger(calculatedPrice)).toBe(true);
-
+        
         // All pizzas should have reasonable prices (₹300-₹1000)
         expect(calculatedPrice).toBeGreaterThanOrEqual(30000); // ₹300
         expect(calculatedPrice).toBeLessThanOrEqual(100000); // ₹1000
@@ -332,7 +332,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       expect(result.success).toBe(false);
       expect(result.conflicts).toBeDefined();
       expect(result.conflicts.length).toBeGreaterThan(0);
-
+      
       const cornConflict = result.conflicts.find(c => c.ingredient === 'Corn');
       expect(cornConflict).toBeDefined();
       expect(cornConflict.existingCategory).toBe('cheese');
@@ -341,7 +341,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       // Should NOT overwrite existing data
       const existing = await Ingredient.findOne({ name: 'Corn' });
       expect(existing.category).toBe('cheese'); // Preserved original
-
+      
       // Other ingredients should seed successfully
       expect(await Ingredient.countDocuments()).toBeGreaterThan(1);
     });
@@ -365,7 +365,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       expect(result.success).toBe(false);
       expect(result.conflicts).toBeDefined();
       expect(result.conflicts.length).toBeGreaterThan(0);
-
+      
       const margheritaConflict = result.conflicts.find(c => c.pizza === 'Margherita Classic');
       expect(margheritaConflict).toBeDefined();
       expect(margheritaConflict.conflicts).toContain('cheese mismatch');
@@ -398,7 +398,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
 
     it('should succeed when no conflicts exist', async () => {
       const result = await seedDatabase();
-
+      
       expect(result.success).toBe(true);
       expect(result.conflicts).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
@@ -425,7 +425,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       // Set the env variable explicitly to match the connection
       const testUri = replSet.getUri();
       process.env.MONGODB_URI = testUri;
-
+      
       const result = await seedDatabase();
       expect(result.success).toBe(true);
     });
@@ -433,7 +433,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
     it('should allow seeding to 127.0.0.1 databases', async () => {
       // Save original
       const originalUri = process.env.MONGODB_URI;
-
+      
       // Create URI with 127.0.0.1
       const currentUri = replSet.getUri();
       const localhostUri = currentUri.replace('localhost', '127.0.0.1');
@@ -565,7 +565,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
           env,
           timeout: 30000,
         });
-
+        
         // Should not reach here - command should fail
         throw new Error('Expected CLI to exit with non-zero code due to conflicts');
       } catch (error) {
@@ -578,8 +578,8 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
 
     it('should exit with code 1 when production database is targeted', async () => {
       // Use test NODE_ENV to pass env.js validation, but with production URI
-      const env = {
-        ...process.env,
+      const env = { 
+        ...process.env, 
         MONGODB_URI: 'mongodb://production-server:27017/sunnys-pizza',
         NODE_ENV: 'test',
         // Provide required test-mode defaults to pass env validation
@@ -594,7 +594,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
           env,
           timeout: 30000,
         });
-
+        
         throw new Error('Expected CLI to block production seeding');
       } catch (error) {
         expect(error.code).toBe(1);
@@ -609,7 +609,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       await seedDatabase();
 
       const expectedBases = ['Thin Crust', 'Thick Crust', 'Stuffed Crust', 'Gluten-Free', 'Whole Wheat'];
-
+      
       for (const baseName of expectedBases) {
         const base = await Ingredient.findOne({ name: baseName, category: 'base' });
         expect(base).toBeDefined();
@@ -621,7 +621,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       await seedDatabase();
 
       const expectedSauces = ['Classic Tomato', 'Pesto', 'White Garlic', 'BBQ', 'Spicy Marinara'];
-
+      
       for (const sauceName of expectedSauces) {
         const sauce = await Ingredient.findOne({ name: sauceName, category: 'sauce' });
         expect(sauce).toBeDefined();
@@ -633,7 +633,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       await seedDatabase();
 
       const expectedCheeses = ['Mozzarella', 'Cheddar', 'Parmesan'];
-
+      
       for (const cheeseName of expectedCheeses) {
         const cheese = await Ingredient.findOne({ name: cheeseName, category: 'cheese' });
         expect(cheese).toBeDefined();
@@ -645,7 +645,7 @@ describe('Database Seeding - Phase 3 Task 3.2', () => {
       await seedDatabase();
 
       const expectedVegetables = ['Bell Peppers', 'Onions', 'Mushrooms', 'Olives', 'Tomatoes', 'Jalapeños', 'Spinach', 'Corn'];
-
+      
       for (const vegName of expectedVegetables) {
         const vegetable = await Ingredient.findOne({ name: vegName, category: 'vegetable' });
         expect(vegetable).toBeDefined();

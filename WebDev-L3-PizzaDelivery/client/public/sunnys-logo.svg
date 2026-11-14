@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="220" viewBox="0 0 820 220" role="img" aria-labelledby="title desc">
+  <title id="title">SUNNYS Pizza logo</title>
+  <desc id="desc">A golden pizza slice with pepperoni and basil in front of a rising sun, beside the SUNNYS Pizza wordmark.</desc>
+  <defs>
+    <linearGradient id="sun" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#FFE16A"/>
+      <stop offset="1" stop-color="#F6A52A"/>
+    </linearGradient>
+    <linearGradient id="cheese" x1="0" x2=".85" y1="0" y2="1">
+      <stop offset="0" stop-color="#FFE77F"/>
+      <stop offset=".55" stop-color="#FFC747"/>
+      <stop offset="1" stop-color="#EE9D24"/>
+    </linearGradient>
+    <linearGradient id="crust" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#D98126"/>
+      <stop offset="1" stop-color="#9C501D"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" x2="1">
+      <stop offset="0" stop-color="#FFC54A"/>
+      <stop offset="1" stop-color="#FF9E31"/>
+    </linearGradient>
+    <filter id="gentleShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#091D12" flood-opacity=".30"/>
+    </filter>
+  </defs>
+
+  <!-- Sunburst, vibrant even on pale or dark backgrounds -->
+  <g transform="translate(99 106)" stroke="#03C979" stroke-width="7" stroke-linecap="round">
+    <path d="M0 -88 V-105 M62 -62 L74 -75 M88 0 H106 M63 62 L75 74 M-62 -62 L-75 -75 M-88 0 H-106 M-63 62 L-75 74" />
+  </g>
+  <circle cx="99" cy="106" r="75" fill="url(#sun)" stroke="#0A6C43" stroke-width="4"/>
+  <circle cx="99" cy="106" r="62" fill="none" stroke="#FFF7CC" stroke-width="3" opacity=".45"/>
+
+  <!-- Tilted pizza slice with hand-drawn shape -->
+  <g transform="rotate(-17 102 113)" filter="url(#gentleShadow)">
+    <path d="M36 64 Q99 37 169 63 L110 184 Q106 193 100 185 Z" fill="url(#cheese)" stroke="#9D431F" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M36 64 Q99 36 169 63" fill="none" stroke="url(#crust)" stroke-width="20" stroke-linecap="round"/>
+    <path d="M38 65 Q101 42 167 64" fill="none" stroke="#FFC56D" stroke-width="8" stroke-linecap="round"/>
+    <path d="M77 79 Q89 91 100 102 M127 80 Q113 93 107 113" fill="none" stroke="#F5A139" stroke-width="3" opacity=".6"/>
+    <circle cx="83" cy="89" r="14" fill="#D9442C" stroke="#B93228" stroke-width="2"/>
+    <circle cx="126" cy="87" r="13" fill="#D9442C" stroke="#B93228" stroke-width="2"/>
+    <circle cx="104" cy="134" r="13" fill="#D9442C" stroke="#B93228" stroke-width="2"/>
+    <circle cx="80" cy="85" r="3" fill="#FF9B70" opacity=".9"/>
+    <circle cx="123" cy="83" r="3" fill="#FF9B70" opacity=".9"/>
+    <circle cx="101" cy="130" r="3" fill="#FF9B70" opacity=".9"/>
+    <path d="M88 119 Q67 104 64 121 Q68 140 88 119Z" fill="#008D55"/>
+    <path d="M88 119 Q101 100 111 111 Q108 127 88 119Z" fill="#0AB26B"/>
+    <path d="M89 118 L91 135" stroke="#057C4B" stroke-width="2"/>
+    <circle cx="143" cy="66" r="3" fill="#FFEEB0"/>
+    <circle cx="63" cy="67" r="3" fill="#FFEEB0"/>
+  </g>
+
+  <!-- Brand wordmark -->
+  <g font-family="'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif">
+    <text x="219" y="106" font-size="81" font-weight="900" letter-spacing="-4" fill="url(#word)" stroke="#174B31" stroke-width="1.5" paint-order="stroke fill">SUNNYS</text>
+    <text x="226" y="164" font-family="Georgia, 'Times New Roman', serif" font-size="60" font-style="italic" font-weight="bold" fill="#08B96F" stroke="#103723" stroke-width="1" paint-order="stroke fill">Pizza</text>
+    <text x="425" y="157" font-size="14" font-weight="700" letter-spacing="2.8" fill="#9DBAA9">GOOD FOOD · BRIGHT MOMENTS</text>
+  </g>
+</svg>

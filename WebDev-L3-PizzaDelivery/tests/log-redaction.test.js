@@ -9,7 +9,7 @@ describe('Log Redaction Tests - Security', () => {
 
     // Simulate the redaction logic from errorHandler
     const sanitized = mockError.stack.replace(/\/Users\/[^/]+/g, '/Users/***');
-
+    
     expect(sanitized).not.toContain('/Users/john');
     expect(sanitized).toContain('/Users/***/project/file.js:10:5');
   });
@@ -21,7 +21,7 @@ describe('Log Redaction Tests - Security', () => {
     };
 
     const sanitized = mockError.stack.replace(/C:\\Users\\[^\\]+/g, 'C:\\Users\\***');
-
+    
     expect(sanitized).not.toContain('\\Users\\JohnDoe');
     expect(sanitized).toContain('C:\\Users\\***\\project\\file.js:10:5');
   });
@@ -44,7 +44,7 @@ describe('Log Redaction Tests - Security', () => {
 
   it('should redact potential connection strings from logs', () => {
     const mockConnectionString = 'mongodb://admin:password123@localhost:27017/db';
-
+    
     // Simulate redaction of credentials from connection strings
     const sanitized = mockConnectionString.replace(
       /(mongodb:\/\/)([^:]+):([^@]+)(@)/,
@@ -58,9 +58,9 @@ describe('Log Redaction Tests - Security', () => {
 
   it('should redact JWT tokens from logs', () => {
     const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
-
+    
     // Simulate token redaction
-    const sanitized = mockToken.length > 10
+    const sanitized = mockToken.length > 10 
       ? `${mockToken.substring(0, 10)}...[REDACTED]`
       : mockToken;
 

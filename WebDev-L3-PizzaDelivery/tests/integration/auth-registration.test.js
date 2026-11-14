@@ -33,7 +33,7 @@ describe('Authentication - Registration', () => {
   beforeEach(async () => {
     await User.deleteMany({});
     await AuthToken.deleteMany({});
-
+    
     // Keep CSRF session cookies with the token for each test.
     agent = request.agent(app);
     const response = await agent.get('/api/auth/csrf-token');
@@ -148,7 +148,7 @@ describe('Authentication - Registration', () => {
 
     const user = await User.findOne({ email: 'test@example.com' });
     const token = await AuthToken.findOne({ userId: user._id, type: 'verification' });
-
+    
     expect(token).toBeDefined();
     expect(token.used).toBe(false);
     expect(token.expiresAt).toBeInstanceOf(Date);

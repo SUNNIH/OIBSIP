@@ -8,11 +8,17 @@ const ingredientSchema = new mongoose.Schema({
     trim: true,
   },
   category: {
-    type: String,
-    enum: ['base', 'sauce', 'cheese', 'vegetable'],
-    required: true,
-    index: true,
-  },
+  type: String,
+  enum: [
+    'base',
+    'sauce',
+    'cheese',
+    'vegetable',
+    'protein'
+  ],
+  required: true,
+  index: true,
+},
   pricePaise: {
     type: Number,
     required: true,
@@ -75,7 +81,7 @@ ingredientSchema.pre('save', async function() {
   if (this.reserved > this.stock) {
     throw new Error('Reserved quantity cannot exceed stock');
   }
-
+  
   this.updatedAt = new Date();
 });
 
@@ -105,13 +111,13 @@ ingredientSchema.set('toObject', { virtuals: true });
 ingredientSchema.statics.checkAvailability = async function(ingredientQuantities) {
   const ingredientIds = Object.keys(ingredientQuantities);
   const ingredients = await this.find({ _id: { $in: ingredientIds } });
-
+  
   // Hardening fix 1: Detect nonexistent ingredient IDs
   const foundIds = new Set(ingredients.map(ing => ing._id.toString()));
   const missingIds = ingredientIds.filter(id => !foundIds.has(id));
-
+  
   const unavailable = [];
-
+  
   // Report missing ingredients first
   for (const missingId of missingIds) {
     unavailable.push({
@@ -121,7 +127,7 @@ ingredientSchema.statics.checkAvailability = async function(ingredientQuantities
       requested: ingredientQuantities[missingId],
     });
   }
-
+  
   // Check found ingredients
   for (const ingredient of ingredients) {
     const requestedQty = ingredientQuantities[ingredient._id.toString()];
@@ -141,7 +147,7 @@ ingredientSchema.statics.checkAvailability = async function(ingredientQuantities
       });
     }
   }
-
+  
   return {
     available: unavailable.length === 0,
     unavailable,

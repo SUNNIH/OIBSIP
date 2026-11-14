@@ -12,19 +12,19 @@ const ingredientsData = [
   { name: 'Stuffed Crust', category: 'base', pricePaise: 22000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'Gluten-Free', category: 'base', pricePaise: 25000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'Whole Wheat', category: 'base', pricePaise: 16000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
-
+  
   // Sauces (5)
   { name: 'Classic Tomato', category: 'sauce', pricePaise: 8000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'Pesto', category: 'sauce', pricePaise: 12000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'White Garlic', category: 'sauce', pricePaise: 10000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'BBQ', category: 'sauce', pricePaise: 11000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'Spicy Marinara', category: 'sauce', pricePaise: 9000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
-
+  
   // Cheese (3)
   { name: 'Mozzarella', category: 'cheese', pricePaise: 15000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'Cheddar', category: 'cheese', pricePaise: 13000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'Parmesan', category: 'cheese', pricePaise: 18000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
-
+  
   // Vegetables (8)
   { name: 'Bell Peppers', category: 'vegetable', pricePaise: 7000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
   { name: 'Onions', category: 'vegetable', pricePaise: 5000, stock: 1000, reserved: 0, lowStockThreshold: 50 },
@@ -92,11 +92,11 @@ const pizzasData = [
 async function seedIngredients() {
   console.log('Seeding ingredients...');
   const results = { created: 0, existing: 0, conflicts: [], errors: [] };
-
+  
   for (const ingredientData of ingredientsData) {
     try {
       const existing = await Ingredient.findOne({ name: ingredientData.name });
-
+      
       if (existing) {
         // Check for category conflict
         if (existing.category !== ingredientData.category) {
@@ -124,7 +124,7 @@ async function seedIngredients() {
       console.error(`  ✗ Error seeding ${ingredientData.name}: ${error.message}`);
     }
   }
-
+  
   return results;
 }
 
@@ -136,29 +136,29 @@ async function seedIngredients() {
 async function seedPizzas() {
   console.log('Seeding pizza presets...');
   const results = { created: 0, existing: 0, conflicts: [], errors: [] };
-
+  
   // Build ingredient name-to-ID map
   const ingredientMap = new Map();
   const allIngredients = await Ingredient.find({});
   for (const ingredient of allIngredients) {
     ingredientMap.set(ingredient.name, ingredient._id);
   }
-
+  
   for (const pizzaData of pizzasData) {
     try {
       const existing = await Pizza.findOne({ name: pizzaData.name });
-
+      
       if (existing) {
         // Check for recipe or category conflicts
         const recipeConflicts = [];
-
+        
         // Resolve seed ingredient names to IDs for comparison
         const seedBase = ingredientMap.get(pizzaData.ingredients.base);
         const seedSauce = ingredientMap.get(pizzaData.ingredients.sauce);
         const seedCheese = ingredientMap.get(pizzaData.ingredients.cheese);
         const seedVegetables = pizzaData.ingredients.vegetables.map(name => ingredientMap.get(name)).sort();
         const existingVegetables = existing.ingredients.vegetables.map(id => id.toString()).sort();
-
+        
         if (existing.ingredients.base.toString() !== seedBase?.toString()) {
           recipeConflicts.push('base mismatch');
         }
@@ -168,14 +168,14 @@ async function seedPizzas() {
         if (existing.ingredients.cheese.toString() !== seedCheese?.toString()) {
           recipeConflicts.push('cheese mismatch');
         }
-        if (existingVegetables.length !== seedVegetables.length ||
+        if (existingVegetables.length !== seedVegetables.length || 
             !existingVegetables.every((v, i) => v === seedVegetables[i]?.toString())) {
           recipeConflicts.push('vegetables mismatch');
         }
         if (existing.category !== pizzaData.category) {
           recipeConflicts.push(`category mismatch (existing: ${existing.category}, seed: ${pizzaData.category})`);
         }
-
+        
         if (recipeConflicts.length > 0) {
           const conflict = {
             pizza: pizzaData.name,
@@ -198,7 +198,7 @@ async function seedPizzas() {
           cheese: ingredientMap.get(pizzaData.ingredients.cheese),
           vegetables: pizzaData.ingredients.vegetables.map(name => ingredientMap.get(name)),
         };
-
+        
         // Validate all ingredients exist
         const missingIngredients = [];
         if (!resolvedIngredients.base) missingIngredients.push(`base: ${pizzaData.ingredients.base}`);
@@ -206,11 +206,11 @@ async function seedPizzas() {
         if (!resolvedIngredients.cheese) missingIngredients.push(`cheese: ${pizzaData.ingredients.cheese}`);
         const missingVeggies = pizzaData.ingredients.vegetables.filter(name => !ingredientMap.has(name));
         if (missingVeggies.length > 0) missingIngredients.push(...missingVeggies.map(v => `vegetable: ${v}`));
-
+        
         if (missingIngredients.length > 0) {
           throw new Error(`Missing ingredients: ${missingIngredients.join(', ')}`);
         }
-
+        
         // Create pizza
         const pizza = await Pizza.create({
           name: pizzaData.name,
@@ -218,7 +218,7 @@ async function seedPizzas() {
           category: pizzaData.category,
           ingredients: resolvedIngredients,
         });
-
+        
         // Calculate and display price
         const calculatedPrice = await pizza.calculatePrice();
         results.created++;
@@ -229,7 +229,7 @@ async function seedPizzas() {
       console.error(`  ✗ Error seeding ${pizzaData.name}: ${error.message}`);
     }
   }
-
+  
   return results;
 }
 
@@ -302,7 +302,7 @@ function assertActiveSeedConnection(target) {
  */
 export async function seedDatabase() {
   console.log('\n=== Starting Database Seeding ===\n');
-
+  
   try {
     // Validate the same URI we will actually use, before connecting or writing.
     const dbUri = process.env.MONGODB_URI || env.MONGODB_URI;
@@ -324,7 +324,7 @@ export async function seedDatabase() {
     if (ingredientResults.errors.length > 0) {
       console.log(`Errors: ${ingredientResults.errors.length}`);
     }
-
+    
     // Seed pizzas
     const pizzaResults = await seedPizzas();
     console.log(`Pizzas: ${pizzaResults.created} created, ${pizzaResults.existing} existing`);
@@ -334,16 +334,16 @@ export async function seedDatabase() {
     if (pizzaResults.errors.length > 0) {
       console.log(`Errors: ${pizzaResults.errors.length}`);
     }
-
+    
     // Summary
     console.log('\n=== Seeding Complete ===');
     console.log(`Total ingredients in database: ${await Ingredient.countDocuments()}`);
     console.log(`Total pizzas in database: ${await Pizza.countDocuments()}`);
-
+    
     // Check for failures
     const allErrors = [...ingredientResults.errors, ...pizzaResults.errors];
     const allConflicts = [...ingredientResults.conflicts, ...pizzaResults.conflicts];
-
+    
     if (allConflicts.length > 0) {
       console.log('\n⚠️  Data conflicts detected (existing data preserved):');
       allConflicts.forEach(conflict => {
@@ -351,28 +351,28 @@ export async function seedDatabase() {
         console.log(`  - ${item}: ${conflict.message}`);
       });
     }
-
+    
     if (allErrors.length > 0) {
       console.log('\n❌ Some items failed to seed:');
       allErrors.forEach(err => console.log(`  - ${err.ingredient || err.pizza}: ${err.error}`));
-      return {
-        success: false,
-        ingredientResults,
+      return { 
+        success: false, 
+        ingredientResults, 
         pizzaResults,
         conflicts: allConflicts,
-        errors: allErrors
+        errors: allErrors 
       };
     }
-
+    
     // Conflicts also make the CLI exit nonzero (without overwriting records).
-    return {
-      success: allConflicts.length === 0,
-      ingredientResults,
+    return { 
+      success: allConflicts.length === 0, 
+      ingredientResults, 
       pizzaResults,
       conflicts: allConflicts,
       errors: []
     };
-
+    
   } catch (error) {
     console.error('\n❌ Seeding failed:', error.message);
     throw error;

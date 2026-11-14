@@ -31,6 +31,11 @@ const resetPasswordSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
+const updateProfileSchema = z.object({
+  displayName: z.string().trim().max(100, 'Display name must be 100 characters or less').optional(),
+  phoneNumber: z.string().trim().max(20, 'Phone number must be 20 characters or less').optional(),
+});
+
 // Helper to generate JWT
 const generateJWT = (user) => {
   return jwt.sign(
@@ -295,6 +300,47 @@ router.get('/me', authenticateToken, async (req, res, next) => {
 
     res.json({ user });
   } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PATCH /api/auth/me
+ * Update current user's profile
+ */
+router.patch('/me', authenticateToken, doubleCsrfProtection, async (req, res, next) => {
+  try {
+    // Validate input
+    const validated = updateProfileSchema.parse(req.body);
+
+    // Only allow updating displayName and phoneNumber
+    const allowedUpdates = {};
+    if (validated.displayName !== undefined) {
+      allowedUpdates.displayName = validated.displayName;
+    }
+    if (validated.phoneNumber !== undefined) {
+      allowedUpdates.phoneNumber = validated.phoneNumber;
+    }
+
+    // Update user (derive from authentication, not client input)
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: allowedUpdates },
+      { new: true, runValidators: true }
+    ).select('-password -tokenVersion');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ 
+      message: 'Profile updated successfully',
+      user 
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.issues[0].message });
+    }
     next(error);
   }
 });

@@ -33,7 +33,7 @@ describe('MongoDB Transaction Tests - OD-09 Phase 1 Harness', () => {
 
   it('should successfully commit a transaction', async () => {
     const session = await mongoose.startSession();
-
+    
     try {
       await session.withTransaction(async () => {
         await TestModel.create([{ name: 'test1', value: 100 }], { session });
@@ -63,7 +63,7 @@ describe('MongoDB Transaction Tests - OD-09 Phase 1 Harness', () => {
       await session.withTransaction(async () => {
         // Create a document
         await TestModel.create([{ name: 'will-rollback', value: 300 }], { session });
-
+        
         // Throw an error to trigger rollback
         throw new Error('Intentional rollback');
       });
@@ -76,7 +76,7 @@ describe('MongoDB Transaction Tests - OD-09 Phase 1 Harness', () => {
     // Verify no state change - rollback was clean
     const finalCount = await TestModel.countDocuments();
     const finalDocs = await TestModel.find({});
-
+    
     expect(finalCount).toBe(1);
     expect(finalDocs[0].name).toBe('existing');
     expect(finalDocs.find(d => d.name === 'will-rollback')).toBeUndefined();
@@ -88,7 +88,7 @@ describe('MongoDB Transaction Tests - OD-09 Phase 1 Harness', () => {
   it('should verify replica set is using WiredTiger storage engine', async () => {
     const adminDb = mongoose.connection.db.admin();
     const serverStatus = await adminDb.serverStatus();
-
+    
     expect(serverStatus.storageEngine.name).toBe('wiredTiger');
   });
 

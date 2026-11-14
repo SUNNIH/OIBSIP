@@ -10,12 +10,16 @@ const router = express.Router();
 
 // Validation schema for quote requests
 const quoteLineSchema = z.object({
-  pizzaId: z.string().refine(
-    (val) => mongoose.Types.ObjectId.isValid(val),
-    { message: 'Invalid pizza ID format' }
-  ).optional(),
+
+  pizzaId: z.string()
+    .refine(
+      (val) => mongoose.Types.ObjectId.isValid(val),
+      { message: 'Invalid pizza ID format' }
+    )
+    .optional(),
 
   recipe: z.object({
+
     base: z.string().refine(
       (val) => mongoose.Types.ObjectId.isValid(val),
       { message: 'Invalid base ingredient ID format' }
@@ -40,26 +44,50 @@ const quoteLineSchema = z.object({
       .optional()
       .default([])
       .refine(
-        (arr) => arr.length === new Set(arr).size,
+        (arr) =>
+          arr.length ===
+          new Set(arr.map(id => id.toLowerCase())).size,
         { message: 'Duplicate vegetables are not allowed' }
       ),
+
+    // Protein toppings belong INSIDE the recipe
+    proteins: z.array(
+      z.string().refine(
+        (val) => mongoose.Types.ObjectId.isValid(val),
+        { message: 'Invalid protein ingredient ID format' }
+      )
+    )
+      .optional()
+      .default([])
+      .refine(
+        (arr) =>
+          arr.length ===
+          new Set(arr.map(id => id.toLowerCase())).size,
+        { message: 'Duplicate proteins are not allowed' }
+      )
+
   }).optional(),
 
   quantity: z.number()
     .int()
     .min(1, 'Quantity must be at least 1')
+    .max(100, 'Quantity cannot exceed 100 per item')
     .refine(
       Number.isSafeInteger,
       { message: 'Quantity must be a safe integer' }
-    ),
+    )
+
 }).refine(
-  (data) => data.pizzaId || data.recipe,
-  { message: 'Either pizzaId or recipe must be provided' }
+  (data) => Boolean(data.pizzaId) !== Boolean(data.recipe),
+  {
+    message: 'Specify either pizzaId or recipe, not both'
+  }
 );
 
 const quoteRequestSchema = z.object({
   lines: z.array(quoteLineSchema)
-    .min(1, 'At least one line item is required'),
+    .min(1, 'At least one line item is required')
+    .max(20, 'Order cannot exceed 20 items'),
 });
 
 /**
@@ -80,11 +108,12 @@ router.get(
         .lean();
 
       const grouped = {
-        base: [],
-        sauce: [],
-        cheese: [],
-        vegetable: [],
-      };
+  base: [],
+  sauce: [],
+  cheese: [],
+  vegetable: [],
+  protein: [],
+};
 
       for (const ingredient of ingredients) {
         const inStock =
@@ -132,11 +161,12 @@ router.get(
             const refs = pizza.ingredients;
 
             const ingredientIds = [
-              refs.base,
-              refs.sauce,
-              refs.cheese,
-              ...(refs.vegetables || []),
-            ];
+  refs.base,
+  refs.sauce,
+  refs.cheese,
+  ...(refs.vegetables || []),
+  ...(refs.proteins || []),
+];
 
             // Ensure no required references are missing.
             if (ingredientIds.some((id) => !id)) {
@@ -175,13 +205,28 @@ router.get(
             const vegetables = (refs.vegetables || [])
               .map((id) => byId.get(id.toString()));
 
+
+              // Resolve protein toppings
+const proteins = (refs.proteins || [])
+  .map((id) => byId.get(id.toString()));
+
             // Reject incomplete recipes.
             if (
-              !base ||
-              !sauce ||
-              !cheese ||
-              vegetables.some((v) => !v)
-            ) {
+  !base ||
+  !sauce ||
+  !cheese ||
+  vegetables.some((v) => !v) ||
+  proteins.some((p) => !p) ||
+  proteins.some((p) => p.category !== 'protein') ||
+  (
+    pizza.category === 'non-vegetarian' &&
+    proteins.length === 0
+  ) ||
+  (
+    pizza.category !== 'non-vegetarian' &&
+    proteins.length > 0
+  )
+) {
               throw new Error(
                 `Pizza ${pizza.name} has invalid ingredient references`
               );
@@ -201,6 +246,7 @@ router.get(
               category: pizza.category,
               pricePaise,
               available: availability.available,
+              imageUrl: pizza.imageUrl || null,
 
               ingredients: {
                 base: {
@@ -219,9 +265,14 @@ router.get(
                 },
 
                 vegetables: vegetables.map((v) => ({
-                  id: v._id,
-                  name: v.name,
-                })),
+  id: v._id,
+  name: v.name,
+})),
+
+proteins: proteins.map((p) => ({
+  id: p._id,
+  name: p.name,
+})),
               },
             };
           } catch (error) {
@@ -331,12 +382,22 @@ router.post(
           );
 
           const vegIds = (
-            pizza.ingredients.vegetables || []
-          )
-            .map(extractId)
-            .filter(Boolean);
+  pizza.ingredients.vegetables || []
+).map(extractId);
 
-          if (!baseId || !sauceId || !cheeseId) {
+// Extract protein IDs
+const proteinIds = (
+  pizza.ingredients.proteins || []
+).map(extractId);
+
+          if (
+  !baseId ||
+  !sauceId ||
+  !cheeseId ||
+  vegIds.some(id => !id) ||
+  proteinIds.some(id => !id)
+) {
+
             return res.status(400).json({
               error: {
                 code: 'PIZZA_DATA_INCONSISTENCY',
@@ -345,37 +406,73 @@ router.post(
             });
           }
 
+
+          // Enforce protein requirements for pizza categories
+if (
+  (
+    pizza.category === 'non-vegetarian' &&
+    proteinIds.length === 0
+  ) ||
+  (
+    pizza.category !== 'non-vegetarian' &&
+    proteinIds.length > 0
+  )
+) {
+  return res.status(400).json({
+    error: {
+      code: 'PIZZA_DATA_INCONSISTENCY',
+      message: 'Pizza category does not match its protein toppings'
+    }
+  });
+}
           ingredientIds = [
-            baseId,
-            sauceId,
-            cheeseId,
-            ...vegIds,
-          ];
+  baseId,
+  sauceId,
+  cheeseId,
+  ...vegIds,
+  ...proteinIds,
+];
         } else {
           /**
            * CUSTOM PIZZA
            */
           const {
-            base,
-            sauce,
-            cheese,
-            vegetables = [],
-          } = line.recipe;
+  base,
+  sauce,
+  cheese,
+  vegetables = [],
+  proteins = [],
+} = line.recipe;
 
-          const [
-            baseIng,
-            sauceIng,
-            cheeseIng,
-            ...vegetableIngs
-          ] = await Promise.all([
-            Ingredient.findById(base),
-            Ingredient.findById(sauce),
-            Ingredient.findById(cheese),
+          // Fetch all ingredients for the custom pizza
+const ingredientDocs = await Promise.all([
+  Ingredient.findById(base),
+  Ingredient.findById(sauce),
+  Ingredient.findById(cheese),
 
-            ...vegetables.map(
-              (id) => Ingredient.findById(id)
-            ),
-          ]);
+  ...vegetables.map(
+    id => Ingredient.findById(id)
+  ),
+
+  ...proteins.map(
+    id => Ingredient.findById(id)
+  ),
+]);
+
+const [
+  baseIng,
+  sauceIng,
+  cheeseIng
+] = ingredientDocs;
+
+const vegetableIngs = ingredientDocs.slice(
+  3,
+  3 + vegetables.length
+);
+
+const proteinIngs = ingredientDocs.slice(
+  3 + vegetables.length
+);
 
           // Validate required ingredient existence.
           if (!baseIng) {
@@ -417,6 +514,19 @@ router.post(
             }
           }
 
+// Validate all proteins exist
+for (let i = 0; i < proteins.length; i++) {
+  if (!proteinIngs[i]) {
+    return res.status(400).json({
+      error: {
+        code: 'INVALID_INGREDIENT',
+        message:
+          `Protein ingredient not found: ${proteins[i]}`
+      }
+    });
+  }
+}
+
           // Validate ingredient categories.
           if (baseIng.category !== 'base') {
             return res.status(400).json({
@@ -456,13 +566,27 @@ router.post(
             }
           }
 
+// Validate protein categories
+for (const protein of proteinIngs) {
+  if (protein.category !== 'protein') {
+    return res.status(400).json({
+      error: {
+        code: 'INVALID_CATEGORY',
+        message:
+          `Ingredient "${protein.name}" is not a protein`
+      }
+    });
+  }
+}
+
           // Validate active status.
-          const allIngredients = [
-            baseIng,
-            sauceIng,
-            cheeseIng,
-            ...vegetableIngs,
-          ];
+         const allIngredients = [
+  baseIng,
+  sauceIng,
+  cheeseIng,
+  ...vegetableIngs,
+  ...proteinIngs,
+];
 
           for (const ing of allIngredients) {
             if (!ing.isActive) {
@@ -476,14 +600,32 @@ router.post(
           }
 
           ingredientIds = [
-            base,
-            sauce,
-            cheese,
-            ...vegetables,
-          ];
+  base,
+  sauce,
+  cheese,
+  ...vegetables,
+  ...proteins,
+];
 
           pizzaName = 'Custom Pizza';
         }
+
+// Reject missing or duplicate ingredient references
+const normalizedIds = ingredientIds.map(
+  id => id?.toString().toLowerCase()
+);
+
+if (
+  normalizedIds.some(id => !id) ||
+  new Set(normalizedIds).size !== normalizedIds.length
+) {
+  return res.status(400).json({
+    error: {
+      code: 'INVALID_RECIPE',
+      message: 'Missing or duplicate ingredients in pizza recipe'
+    }
+  });
+}
 
         /**
          * Aggregate total ingredient quantities.

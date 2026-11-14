@@ -415,7 +415,7 @@ beforeAll(async () => {
     it('should have index on category', async () => {
       await Ingredient.init(); // Ensure indexes are created
       const indexes = await Ingredient.collection.getIndexes();
-      const categoryIndex = Object.keys(indexes).find(key =>
+      const categoryIndex = Object.keys(indexes).find(key => 
         key.includes('category') && !key.includes('isActive')
       );
       expect(categoryIndex).toBeDefined();
@@ -424,7 +424,7 @@ beforeAll(async () => {
     it('should have index on isActive', async () => {
       await Ingredient.init();
       const indexes = await Ingredient.collection.getIndexes();
-      const activeIndex = Object.keys(indexes).find(key =>
+      const activeIndex = Object.keys(indexes).find(key => 
         key.includes('isActive') && !key.includes('category')
       );
       expect(activeIndex).toBeDefined();
@@ -433,7 +433,7 @@ beforeAll(async () => {
     it('should have compound index on category and isActive', async () => {
       await Ingredient.init();
       const indexes = await Ingredient.collection.getIndexes();
-      const compoundIndex = Object.keys(indexes).find(key =>
+      const compoundIndex = Object.keys(indexes).find(key => 
         key.includes('category') && key.includes('isActive')
       );
       expect(compoundIndex).toBeDefined();
@@ -499,7 +499,7 @@ describe('Hardening - Nonexistent Ingredient Detection', () => {
       };
 
       const result = await Ingredient.checkAvailability(quantities);
-
+      
       expect(result.available).toBe(false);
       expect(result.unavailable).toHaveLength(1);
       expect(result.unavailable[0].reason).toBe('not_found');
@@ -516,10 +516,13 @@ describe('Hardening - Nonexistent Ingredient Detection', () => {
       };
 
       const result = await Ingredient.checkAvailability(quantities);
-
+      
       expect(result.available).toBe(false);
       expect(result.unavailable).toHaveLength(2);
       expect(result.unavailable.every(u => u.reason === 'not_found')).toBe(true);
     });
   });
 });
+
+
+  
